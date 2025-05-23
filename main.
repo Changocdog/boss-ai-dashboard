@@ -1,0 +1,71 @@
+import streamlit as st
+import pandas as pd
+import openai
+import os
+from dotenv import load_dotenv
+
+# Load your API key from environment
+load_dotenv()
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
+# Set page layout
+st.set_page_config(page_title="Boss AI Dashboard", layout="wide")
+st.title("Boss AI Monitoring Dashboard")
+
+# Sample task log
+task_data = [
+    {"timestamp": "2025-05-23 10:15", "task_type": "Script Writing", "status": "Completed"},
+    {"timestamp": "2025-05-23 10:30", "task_type": "Video Editing", "status": "In Progress"},
+    {"timestamp": "2025-05-23 10:45", "task_type": "Upload", "status": "Pending"}
+]
+df = pd.DataFrame(task_data)
+
+# Display status metrics
+col1, col2, col3 = st.columns(3)
+col1.metric("✅ Completed", len(df[df["status"] == "Completed"]))
+col2.metric("⏳ In Progress", len(df[df["status"] == "In Progress"]))
+col3.metric("🔲 Pending", len(df[df["status"] == "Pending"]))
+
+st.write("### Task Log")
+st.dataframe(df, use_container_width=True)
+
+# Reusable AI section generator
+def run_ai(title, button_label, prompt, input_field=False):
+    st.subheader(title)
+    user_input = ""
+    if input_field:
+        user_input = st.text_area("Input", "", height=100, key=title)
+    if st.button(button_label, key=button_label):
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": user_input if input_field else prompt}
+                ]
+            )
+            st.text_area("Response", response.choices[0].message.content, height=250, key=title + "-response")
+        except Exception as e:
+            st.error(f"Error: {e}")
+
+# AI Modules
+run_ai("🤖 AI #1: Task Suggestion", "Suggest Task",
+       "You help manage content automation tasks.")
+
+run_ai("📝 AI #2: Script Writer", "Generate Script",
+       "You write short, catchy scripts for finance or horror videos.", input_field=True)
+
+run_ai("🎙️ AI #3: Voiceover Generator", "Generate Voiceover Text",
+       "Convert this script into natural-sounding voiceover narration.", input_field=True)
+
+run_ai("✂️ AI #4: Video Clipper", "Suggest Clip Edits",
+       "Given this script, suggest visual edits and clips to match.", input_field=True)
+
+run_ai("⬆️ AI #5: Upload Planner", "Suggest Upload Strategy",
+       "Given this content, suggest when and where to upload it.", input_field=True)
+
+run_ai("⚖️ AI #6: Legal Compliance Checker", "Check for Legal Issues",
+       "Review this content and highlight any legal risks or copyright issues.", input_field=True)
+
+run_ai("🧠 AI #7: General Manager AI", "Summarize All Agent Tasks",
+       "Summarize the outputs of all AIs and suggest next steps.", input_field=True)
