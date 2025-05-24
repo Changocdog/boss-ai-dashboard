@@ -38,7 +38,7 @@ def run_ai(title, button_label, prompt, input_field=False):
     if st.button(button_label, key=button_label):
         try:
             response = openai.ChatCompletion.create(
-                model="gpt-4",
+                model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": user_input if input_field else prompt}
