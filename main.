@@ -1,71 +1,116 @@
-import streamlit as st
-import pandas as pd
-import openai
-import os
-from dotenv import load_dotenv
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BossAI Automation Canvas</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f9;
+      color: #333;
+    }
+    header {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px;
+      text-align: center;
+    }
+    .canvas-container {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 60px);
+      overflow: hidden;
+    }
+    .nodes-list {
+      width: 200px;
+      background-color: #f8f8f8;
+      border-right: 1px solid #ddd;
+      padding: 10px;
+    }
+    .nodes-list h3 {
+      margin-top: 0;
+    }
+    .node {
+      margin: 10px 0;
+      padding: 10px;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      cursor: grab;
+      text-align: center;
+    }
+    .node.dragging {
+      opacity: 0.5;
+    }
+    .canvas {
+      flex: 1;
+      position: relative;
+      background-color: #fff;
+    }
+    .dropped-node {
+      position: absolute;
+      padding: 10px;
+      background-color: #4CAF50;
+      color: white;
+      border-radius: 5px;
+      cursor: grab;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>BossAI Automation Canvas</h1>
+  </header>
+  <div class="canvas-container">
+    <div class="nodes-list">
+      <h3>Nodes</h3>
+      <div class="node" draggable="true" data-node-type="Script Writer">Script Writer</div>
+      <div class="node" draggable="true" data-node-type="Voiceover">Voiceover</div>
+      <div class="node" draggable="true" data-node-type="Logger">Logger</div>
+    </div>
+    <div class="canvas" id="canvas"></div>
+  </div>
 
-# Load your API key from environment
-load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+  <script>
+    const nodes = document.querySelectorAll('.node');
+    const canvas = document.getElementById('canvas');
+    let draggedNode = null;
 
-# Set page layout
-st.set_page_config(page_title="Boss AI Dashboard", layout="wide")
-st.title("Boss AI Monitoring Dashboard")
+    // Drag start
+    nodes.forEach(node => {
+      node.addEventListener('dragstart', (event) => {
+        draggedNode = event.target;
+        event.target.classList.add('dragging');
+      });
+      
+      node.addEventListener('dragend', (event) => {
+        event.target.classList.remove('dragging');
+        draggedNode = null;
+      });
+    });
 
-# Sample task log
-task_data = [
-    {"timestamp": "2025-05-23 10:15", "task_type": "Script Writing", "status": "Completed"},
-    {"timestamp": "2025-05-23 10:30", "task_type": "Video Editing", "status": "In Progress"},
-    {"timestamp": "2025-05-23 10:45", "task_type": "Upload", "status": "Pending"}
-]
-df = pd.DataFrame(task_data)
+    // Allow drop on canvas
+    canvas.addEventListener('dragover', (event) => {
+      event.preventDefault();
+    });
 
-# Display status metrics
-col1, col2, col3 = st.columns(3)
-col1.metric("✅ Completed", len(df[df["status"] == "Completed"]))
-col2.metric("⏳ In Progress", len(df[df["status"] == "In Progress"]))
-col3.metric("🔲 Pending", len(df[df["status"] == "Pending"]))
-
-st.write("### Task Log")
-st.dataframe(df, use_container_width=True)
-
-# Reusable AI section generator
-def run_ai(title, button_label, prompt, input_field=False):
-    st.subheader(title)
-    user_input = ""
-    if input_field:
-        user_input = st.text_area("Input", "", height=100, key=title)
-    if st.button(button_label, key=button_label):
-        try:
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=[
-                    {"role": "system", "content": prompt},
-                    {"role": "user", "content": user_input if input_field else prompt}
-                ]
-            )
-            st.text_area("Response", response.choices[0].message.content, height=250, key=title + "-response")
-        except Exception as e:
-            st.error(f"Error: {e}")
-
-# AI Modules
-run_ai("🤖 AI #1: Task Suggestion", "Suggest Task",
-       "You help manage content automation tasks.")
-
-run_ai("📝 AI #2: Script Writer", "Generate Script",
-       "You write short, catchy scripts for finance or horror videos.", input_field=True)
-
-run_ai("🎙️ AI #3: Voiceover Generator", "Generate Voiceover Text",
-       "Convert this script into natural-sounding voiceover narration.", input_field=True)
-
-run_ai("✂️ AI #4: Video Clipper", "Suggest Clip Edits",
-       "Given this script, suggest visual edits and clips to match.", input_field=True)
-
-run_ai("⬆️ AI #5: Upload Planner", "Suggest Upload Strategy",
-       "Given this content, suggest when and where to upload it.", input_field=True)
-
-run_ai("⚖️ AI #6: Legal Compliance Checker", "Check for Legal Issues",
-       "Review this content and highlight any legal risks or copyright issues.", input_field=True)
-
-run_ai("🧠 AI #7: General Manager AI", "Summarize All Agent Tasks",
-       "Summarize the outputs of all AIs and suggest next steps.", input_field=True)
+    canvas.addEventListener('drop', (event) => {
+      event.preventDefault();
+      
+      if (draggedNode) {
+        const nodeType = draggedNode.getAttribute('data-node-type');
+        
+        const droppedNode = document.createElement('div');
+        droppedNode.className = 'dropped-node';
+        droppedNode.textContent = nodeType;
+        droppedNode.style.left = `${event.clientX - canvas.offsetLeft}px`;
+        droppedNode.style.top = `${event.clientY - canvas.offsetTop}px`;
+        canvas.appendChild(droppedNode);
+      }
+    });
+  </script>
+</body>
+</html>
